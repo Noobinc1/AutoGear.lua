@@ -1,3 +1,4 @@
+function AutoGearQueueLocalUpdate(delay) end
 --AutoGear
 
 -- to do:
@@ -163,13 +164,27 @@ if (not AutoGearDB) then AutoGearDB = {} end
 -- AutoGearItemInfoCache = {}
 
 --fill class lists for lookups later
+-- Initialize AutoGearClassList
 AutoGearClassList = {}
-local playerIsFemale = (C_PlayerInfo.GetSex(PlayerLocation:CreateFromUnit("player")) == 1)
-FillLocalizedClassList(AutoGearClassList, playerIsFemale)
+
+-- Determine if the player is female
+local playerSex = C_PlayerInfo.GetSex(PlayerLocation:CreateFromUnit("player"))
+local playerIsFemale = (playerSex == 3) -- 3 = female
+
+-- Select the appropriate localization table
+local localizedClassNames = playerIsFemale and LOCALIZED_CLASS_NAMES_FEMALE or LOCALIZED_CLASS_NAMES_MALE
+
+-- Populate AutoGearClassList with localized class names
+for classFileName, className in pairs(localizedClassNames) do
+    AutoGearClassList[classFileName] = className
+end
+
+-- Manually add any missing classes
 if not AutoGearClassList["DEATHKNIGHT"] then AutoGearClassList["DEATHKNIGHT"] = "Death Knight" end
 if not AutoGearClassList["DEMONHUNTER"] then AutoGearClassList["DEMONHUNTER"] = "Demon Hunter" end
 if not AutoGearClassList["EVOKER"] then AutoGearClassList["EVOKER"] = "Evoker" end
 if not AutoGearClassList["MONK"] then AutoGearClassList["MONK"] = "Monk" end
+
 AutoGearReverseClassList = {}
 for k, v in pairs(AutoGearClassList) do
 	AutoGearReverseClassList[v] = k
@@ -1873,7 +1888,8 @@ end
 
 local optionsMenu = CreateFrame("Frame", "AutoGearOptionsPanel", InterfaceOptionsFramePanelContainer)
 optionsMenu.name = "AutoGear"
-InterfaceOptions_AddCategory(optionsMenu)
+local category = Settings.RegisterCanvasLayoutCategory(optionsMenu, "AutoGear")
+Settings.RegisterAddOnCategory(category)
 if InterfaceAddOnsList_Update then InterfaceAddOnsList_Update() end
 
 --handle PLAYER_ENTERING_WORLD events for initialization
