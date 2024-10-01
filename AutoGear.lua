@@ -2974,72 +2974,74 @@ function AutoGearIs1hWorthwhile(i)
 	return AutoGearBestItems[i].score > minScore and AutoGearBestItems[i].score > AutoGearBestItems[INVSLOT_TABARD].score * (i == INVSLOT_MAINHAND and 0.15 or 0.05)
 end
 
---companion function to AutoGearConsiderAllItems
+-- companion function to AutoGearConsiderAllItems
 function AutoGearConsiderItem(info, bag, slot, rollOn, chooseReward)
-	if info.empty
-	or (info.guid and AutoGearBestItemsAlreadyAdded[info.guid])
-	or (info.isAmmoBag
-	and	AutoGearBestItems[INVSLOT_RANGED].info.isRangedWeapon)
-	and (not AutoGearIsAmmoBagValidForRangedWeapon(info, AutoGearBestItems[INVSLOT_RANGED].info)) then
-		return
-	end
-	if (info.isMount and (not info.alreadyKnown)) then return true end
-	if (info.usable or (rollOn and info.Within5levels)) then
-		local score = AutoGearDetermineItemScore(info)
-		if info.isGear and info.validGearSlots then
-			local firstValidGearSlot = info.validGearSlots[1]
-			local lowestScoringValidGearSlot = firstValidGearSlot
-			local lowestScoringValidGearSlotScore = AutoGearBestItems[firstValidGearSlot].score
-			for _, gearSlot in pairs(info.validGearSlots) do
-				local skipThisSlot = false
-				for _, otherGearSlot in pairs(info.validGearSlots) do
-					if gearSlot ~= otherGearSlot then
-						if not AutoGearIsGearPairEquippableTogether(info, AutoGearBestItems[otherGearSlot].info) then
-							skipThisSlot = true
-						end
-					end
-				end
-				if not skipThisSlot and
-				((not AutoGearBestItems[gearSlot]) or
-				(AutoGearBestItems[gearSlot].info.empty or
-				(AutoGearBestItems[gearSlot].score < lowestScoringValidGearSlotScore))) then
-					lowestScoringValidGearSlot = gearSlot
-					lowestScoringValidGearSlotScore = AutoGearBestItems[gearSlot] and AutoGearBestItems[gearSlot].score or 0
-				end
-			end
+    if info.empty
+    or (info.guid and AutoGearBestItemsAlreadyAdded[info.guid])
+    or (info.isAmmoBag
+    and AutoGearBestItems[INVSLOT_RANGED] and AutoGearBestItems[INVSLOT_RANGED].info and AutoGearBestItems[INVSLOT_RANGED].info.isRangedWeapon)
+    and (not AutoGearIsAmmoBagValidForRangedWeapon(info, AutoGearBestItems[INVSLOT_RANGED].info)) then
+        return
+    end
+    if (info.isMount and (not info.alreadyKnown)) then return true end
+    if (info.usable or (rollOn and info.Within5levels)) then
+        local score = AutoGearDetermineItemScore(info)
+        if info.isGear and info.validGearSlots then
+            local firstValidGearSlot = info.validGearSlots[1]
+            local lowestScoringValidGearSlot = firstValidGearSlot
+            local lowestScoringValidGearSlotScore = AutoGearBestItems[firstValidGearSlot] and AutoGearBestItems[firstValidGearSlot].score or 0
+            for _, gearSlot in pairs(info.validGearSlots) do
+                local skipThisSlot = false
+                for _, otherGearSlot in pairs(info.validGearSlots) do
+                    if gearSlot ~= otherGearSlot then
+                        if not AutoGearIsGearPairEquippableTogether(info, AutoGearBestItems[otherGearSlot] and AutoGearBestItems[otherGearSlot].info or {}) then
+                            skipThisSlot = true
+                            break
+                        end
+                    end
+                end
+                if not skipThisSlot then
+                    local currentSlotScore = AutoGearBestItems[gearSlot] and AutoGearBestItems[gearSlot].score or 0
+                    local currentSlotEmpty = AutoGearBestItems[gearSlot] and AutoGearBestItems[gearSlot].info and AutoGearBestItems[gearSlot].info.empty
+                    if (not AutoGearBestItems[gearSlot]) or currentSlotEmpty or (currentSlotScore < lowestScoringValidGearSlotScore) then
+                        lowestScoringValidGearSlot = gearSlot
+                        lowestScoringValidGearSlotScore = currentSlotScore
+                    end
+                end
+            end
 
-			if (
-				((score > lowestScoringValidGearSlotScore) and (not info.isAmmoBag))
-				or AutoGearBestItems[lowestScoringValidGearSlot].info.empty
-				or AutoGearBestItems[lowestScoringValidGearSlot].info.unusable
-				or (info.isAmmoBag
-					and AutoGearIsAmmoBagValidForBestKnownRangedWeapon(info)
-					and ((score > lowestScoringValidGearSlotScore)
-					or (not AutoGearIsAmmoBagValidForBestKnownRangedWeapon(AutoGearBestItems[lowestScoringValidGearSlot].info)))
-				)
-			) then
-				-- AutoGearPrint(info.link.." bag and slot: "..tostring(bag or "nil").." "..tostring(slot or "nil"),0)
-				if info.guid then AutoGearBestItemsAlreadyAdded[info.guid] = 1 end
-				AutoGearBestItems[lowestScoringValidGearSlot].info = info
-				AutoGearBestItems[lowestScoringValidGearSlot].score = score
-				AutoGearBestItems[lowestScoringValidGearSlot].equipped = nil
-				AutoGearBestItems[lowestScoringValidGearSlot].bag = bag
-				AutoGearBestItems[lowestScoringValidGearSlot].slot = slot
-				AutoGearBestItems[lowestScoringValidGearSlot].rollOn = rollOn
-				AutoGearBestItems[lowestScoringValidGearSlot].chooseReward = chooseReward
-				return true
-			end
-		end
-	end
+            if (
+                ((score > lowestScoringValidGearSlotScore) and (not info.isAmmoBag))
+                or (AutoGearBestItems[lowestScoringValidGearSlot] and AutoGearBestItems[lowestScoringValidGearSlot].info and AutoGearBestItems[lowestScoringValidGearSlot].info.empty)
+                or (AutoGearBestItems[lowestScoringValidGearSlot] and AutoGearBestItems[lowestScoringValidGearSlot].info and AutoGearBestItems[lowestScoringValidGearSlot].info.unusable)
+                or (info.isAmmoBag
+                    and AutoGearIsAmmoBagValidForBestKnownRangedWeapon(info)
+                    and ((score > lowestScoringValidGearSlotScore)
+                    or (not AutoGearIsAmmoBagValidForBestKnownRangedWeapon(AutoGearBestItems[lowestScoringValidGearSlot] and AutoGearBestItems[lowestScoringValidGearSlot].info or {})))
+                )
+            ) then
+                if info.guid then AutoGearBestItemsAlreadyAdded[info.guid] = 1 end
+                AutoGearBestItems[lowestScoringValidGearSlot] = AutoGearBestItems[lowestScoringValidGearSlot] or {}
+                AutoGearBestItems[lowestScoringValidGearSlot].info = info
+                AutoGearBestItems[lowestScoringValidGearSlot].score = score
+                AutoGearBestItems[lowestScoringValidGearSlot].equipped = nil
+                AutoGearBestItems[lowestScoringValidGearSlot].bag = bag
+                AutoGearBestItems[lowestScoringValidGearSlot].slot = slot
+                AutoGearBestItems[lowestScoringValidGearSlot].rollOn = rollOn
+                AutoGearBestItems[lowestScoringValidGearSlot].chooseReward = chooseReward
+                return true
+            end
+        end
+    end
 end
 
 function AutoGearIsAmmoBagValidForBestKnownRangedWeapon(info)
-	return AutoGearIsAmmoBagValidForRangedWeapon (
-		info,
-		(AutoGearBestItems and AutoGearBestItems[INVSLOT_RANGED])
-		and AutoGearBestItems[INVSLOT_RANGED].info
-		or AutoGearReadItemInfo(INVSLOT_RANGED)
-	)
+    return AutoGearIsAmmoBagValidForRangedWeapon(
+        info,
+        (AutoGearBestItems and AutoGearBestItems[INVSLOT_RANGED])
+        and AutoGearBestItems[INVSLOT_RANGED].info
+        or AutoGearReadItemInfo(INVSLOT_RANGED)
+    )
 end
 
 function AutoGearGetValidGearSlots(info)
